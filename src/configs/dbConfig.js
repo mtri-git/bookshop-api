@@ -1,9 +1,10 @@
 const mongoose = require('mongoose')
+require('dotenv/config')
 
 const dbConnect = async () => {
     try{
         console.log("Connecting to database")
-        await mongoose.connect("mongodb://localhost:27017/BookShop")
+        await mongoose.connect(process.env.DB)
         console.log("Connect to database successful")
     }
     catch{
