@@ -41,7 +41,7 @@ const Book = new mongoose.Schema({
         default: 0
     },
     author: String,
-    publisher: {},
+    publisher: String,
     category: [{
         type: String
     }]

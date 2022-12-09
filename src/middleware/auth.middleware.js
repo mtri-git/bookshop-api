@@ -3,6 +3,7 @@ const {verifyToken} = require('../utils/jwtHandle')
 const authMiddleware = async(req, res, next) => {
     try {
         const token = req.header('Authorization').replace('Bearer ', '')
+        console.log('user', token)
         const user = verifyToken('access' ,token)
         if(user === 'jwt expired')
             return res.status(400).json({message: "Token expired"})

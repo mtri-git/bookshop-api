@@ -6,7 +6,7 @@ class UserController {
 			const user = await User.findById(req.user.id)
 			res.status(200).json({
 				data: {
-					fullname: user.fullname,
+					fullname: `${user?.last_name} ${user?.middle_name} ${user?.first_name}`,
 					email: user.email,
 					avatarUrl: user.avatarUrl,
 					address: user.address,

@@ -56,8 +56,9 @@ class BookController {
 			let {title , sort, page_size, price} = req.query
 			let sortFilter = {}
 			
-			
 			price = price ? price.split(',') : ''
+			
+			console.log('price',price)
 
 			switch(sort)
 			{
@@ -85,17 +86,16 @@ class BookController {
 			
 			let books = []
 			if(price)
-				books = await Book.find({title: new RegExp( title, 'i'), price:{$gt:price[0], $lt:price[1]}}).sort(sortFilter)
+				books = await Book.find({title: new RegExp( title), price:{$gt: parseInt(price[0]), $lt: parseInt(price[1])}}).sort(sortFilter)
 				.skip((offset - 1) * pageSize)
 				.limit(pageSize)
 			
 			else
-				books = await Book.find({title: new RegExp( title, 'i')}).sort(sortFilter)
+				books = await Book.find({title: new RegExp( title)}).sort(sortFilter)
 					.skip((offset - 1) * pageSize)
 					.limit(pageSize)
 			
-			const count = await Book.find({title: new RegExp( title, 'i')}).count()
-			console.log(count)
+			const count = await Book.find({title: new RegExp( title)}).count()
 			const totalPage = Math.ceil(count/pageSize)
 			res.status(200).json({ book: books, paginate: {offset: req.query.offset, pageSize: pageSize, totalPage: totalPage, total: count} })
 		} catch (error) {
