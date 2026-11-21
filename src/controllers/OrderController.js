@@ -17,7 +17,6 @@ class OrderController {
 				order.order_items.map(order_item => {
 					order_item.info = order_item.id
 					delete order_item['id']
-					console.log(order_item)
 					return order_item
 				})
 				return order
@@ -33,27 +32,54 @@ class OrderController {
 	async createOrderByUser(req, res) {
 		try {
 			const { order_items, payment_type, address } = req.body
-			let total = 0
-			let order_total_value = 0
-			const ship_fee = 12000
-			if (order_items && payment_type && address) {
-				const orderItems = await Promise.all(
-					order_items.map( async(item) => 
-						{
-							const book = await Book.findOne({_id: item.id}).select('title imagUrl price sale')
-							const {price, sale} = book
-							total = price * item.quantity
-							order_total_value = price * (1-sale) * item.quantity + ship_fee
-							return {id: item.id, price, sale, quantity: item.quantity, ship_fee}
-						}
-						)
-				)
-				const orderData = { payment_type, address, total, order_total_value}
+			const SHIP_FEE = 12000
 
-				const order = new Order({ order_by: req.user.id, order_items: orderItems, ...orderData })
-				await order.save()
-				return res.status(201).json({ message: 'Create new order' })
-			} else throw new Error('Missing information for order')
+			if (!Array.isArray(order_items) || order_items.length === 0 || !payment_type || !address) {
+				return res.status(400).json({ message: 'Missing information for order' })
+			}
+			for (const item of order_items) {
+				if (!item?.id || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1) {
+					return res.status(400).json({ message: 'Invalid order item' })
+				}
+			}
+
+			// Prices always come from the DB, never from the client
+			const ids = order_items.map((item) => item.id)
+			const books = await Book.find({ _id: { $in: ids } }).select('price sale')
+			const bookMap = new Map(books.map((b) => [String(b._id), b]))
+
+			let total = 0 // before discount and ship fee
+			let itemsValue = 0 // after discount
+			const orderItems = []
+			for (const item of order_items) {
+				const book = bookMap.get(String(item.id))
+				if (!book) return res.status(400).json({ message: `Book not found: ${item.id}` })
+				const quantity = Number(item.quantity)
+				const sale = book.sale || 0
+				const lineTotal = book.price * (1 - sale) * quantity
+				total += book.price * quantity
+				itemsValue += lineTotal
+				orderItems.push({ id: item.id, price: book.price, sale, quantity, total: lineTotal })
+			}
+
+			const order = new Order({
+				order_by: req.user.id,
+				order_items: orderItems,
+				payment_type,
+				address,
+				ship_fee: SHIP_FEE,
+				total,
+				order_total_value: itemsValue + SHIP_FEE,
+			})
+			await order.save()
+
+			await Book.bulkWrite(
+				orderItems.map((item) => ({
+					updateOne: { filter: { _id: item.id }, update: { $inc: { sold: item.quantity } } },
+				}))
+			)
+
+			return res.status(201).json({ message: 'Create new order', data: { id: order._id } })
 		} catch (error) {
 			console.log('Create order by user: ', error.message)
 			return res.status(500).json({ message: 'Server error' })

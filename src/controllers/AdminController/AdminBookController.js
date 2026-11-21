@@ -40,27 +40,32 @@ class AdminBookController {
 				price,
 				sale,
 				active,
+				isActive,
 				author,
 				publisher,
 				publication_year,
-				iventory,
+				inventory,
+				iventory, // legacy misspelling still sent by older admin clients
 				description,
 			} = req.body
 
-			await Book.findByIdAndUpdate(id, {
+			await Book.findByIdAndUpdate(
 				id,
-				title,
-				imageUrl,
-				category,
-				price,
-				sale,
-				active,
-				author,
-				publisher,
-				publication_year,
-				iventory,
-				description,
-			})
+				{
+					title,
+					imageUrl,
+					category,
+					price,
+					sale,
+					isActive: isActive ?? active,
+					author,
+					publisher,
+					publication_year,
+					inventory: inventory ?? iventory,
+					description,
+				},
+				{ runValidators: true }
+			)
 			return res.status(200).json({ message: 'Update Book completed' })
 		} catch (error) {
 			console.log('Update Book: ', error)

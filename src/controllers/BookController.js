@@ -11,31 +11,6 @@ class BookController {
 		}
 	}
 
-	async addBook(req, res) {
-		try {
-			const book = new Book(req.body)
-			await book.save()
-			res.status(201).json({ message: 'Create book successful' })
-		} catch (err) {
-			console.log('Add Book Error', err)
-			res.status(401).json({ Error: 'Error' })
-		}
-	}
-
-	async updateBook(req, res) {
-		try {
-			const bookData = req.body
-			await Book.updateOne(
-				{ _id: bookData.id },
-				{ $set: { ...bookData } }
-			)
-			return res.status(200).json({ message: 'Update book successfully' })
-		} catch (err) {
-			console.log('Update Book: ', err.message)
-			return res.status(500).json({ message: 'Server Error' })
-		}
-	}
-
 	async getAllBook(req, res) {
 		try {
 			const offset = req.query.offset //
@@ -52,54 +27,43 @@ class BookController {
 
 	async searchBook(req, res) {
 		try {
-			const offset = req.query.offset  || 1//
-			let {title , sort, page_size, price} = req.query
-			let sortFilter = {}
-			
-			price = price ? price.split(',') : ''
-			
-			console.log('price',price)
+			const offset = Math.max(Number(req.query.offset) || 1, 1)
+			const pageSize = Math.min(Math.max(Number(req.query.page_size) || 15, 1), 100)
+			const { title, sort, price } = req.query
 
-			switch(sort)
-			{
-				case 'newest':
-					sortFilter = {create_at: -1}
-					break
-				case 'oldest':
-					sortFilter = {create_at: 1}
-					break
-				case 'best-seller':
-					sortFilter = {sold: -1}
-					break
-				case 'cheapest':
-					sortFilter = {price: 1}
-					break
-				case 'most-expensive':
-					sortFilter = {price: -1}
-					break
-				default:
-					sortFilter = {}
-					break
+			const sortOptions = {
+				newest: { create_at: -1 },
+				oldest: { create_at: 1 },
+				'best-seller': { sold: -1 },
+				cheapest: { price: 1 },
+				'most-expensive': { price: -1 },
+			}
+			const sortFilter = sortOptions[sort] || {}
+
+			const filter = {}
+			if (typeof title === 'string' && title.trim()) {
+				// Escape user input so it is matched literally (prevents ReDoS / invalid regex)
+				const escaped = title.trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+				filter.title = new RegExp(escaped, 'i')
+			}
+			if (typeof price === 'string' && price.includes(',')) {
+				const [min, max] = price.split(',').map(Number)
+				filter.price = {}
+				if (Number.isFinite(min)) filter.price.$gt = min
+				if (Number.isFinite(max)) filter.price.$lt = max
 			}
 
-			const pageSize = Number(page_size) || 15
-			
-			let books = []
-			if(price)
-				books = await Book.find({title: new RegExp( title), price:{$gt: parseInt(price[0]), $lt: parseInt(price[1])}}).sort(sortFilter)
-				.skip((offset - 1) * pageSize)
-				.limit(pageSize)
-			
-			else
-				books = await Book.find({title: new RegExp( title)}).sort(sortFilter)
+			const [books, count] = await Promise.all([
+				Book.find(filter)
+					.sort(sortFilter)
 					.skip((offset - 1) * pageSize)
-					.limit(pageSize)
-			
-			const count = await Book.find({title: new RegExp( title)}).count()
-			const totalPage = Math.ceil(count/pageSize)
-			res.status(200).json({ book: books, paginate: {offset: req.query.offset, pageSize: pageSize, totalPage: totalPage, total: count} })
+					.limit(pageSize),
+				Book.countDocuments(filter),
+			])
+			const totalPage = Math.ceil(count / pageSize)
+			res.status(200).json({ book: books, paginate: { offset, pageSize, totalPage, total: count } })
 		} catch (error) {
-			console.log('DB: Get book', error)
+			console.log('DB: Search book', error)
 			res.status(400).json({ Error: 'Error' })
 		}
 	}
@@ -138,35 +102,6 @@ class BookController {
 
 	getBookByYear(req, res) {}
 
-	async createBook(req, res) {
-		try {
-			const bookData = req.body
-			const book = Book({ ...bookData })
-			await book.save()
-			res.status(200).json({ message: 'Create new book' })
-		} catch (error) {
-			res.status(400).json({ Error: 'Error' })
-		}
-	}
-
-	async updateBook(req, res) {
-		try {
-			const bookData = req.body
-			await Book.findByIdAndUpdate(bookData.id, { ...bookData })
-			res.status(200).json({ message: 'Update a book' })
-		} catch (error) {
-			res.status(400).json({ Error: 'Error' })
-		}
-	}
-
-	async deleteBook(req, res) {
-		try {
-			await Book.findByIdAndRemove(req.body.id)
-			res.status(200).json({ message: 'Delete a book' })
-		} catch (error) {
-			res.status(400).json({ Error: 'Error' })
-		}
-	}
 }
 
 module.exports = new BookController()

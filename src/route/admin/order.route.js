@@ -5,7 +5,7 @@ const orderController = require('../../controllers/AdminController/AdminOrderCon
 
 router.get('/', adminMiddleware ,orderController.getAllOrder)
 router.get('/:id',adminMiddleware, orderController.getOrderById)
-router.post('/create', orderController.createOrder )
+router.post('/create', adminMiddleware, orderController.createOrder)
 router.delete('/delete', adminMiddleware, orderController.deleteOrder)
 router.put('/update', adminMiddleware, orderController.updateOrder)
 // router.get('/', userController.getAllUser)

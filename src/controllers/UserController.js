@@ -22,8 +22,19 @@ class UserController {
 
 	async updateInfo(req, res) {
 		try {
-			const userData = req.body
-			await User.findByIdAndUpdate(req.user.id, { ...userData })
+			// Only allow profile fields; email/password/role must not be changed here
+			const allowed = ['first_name', 'middle_name', 'last_name', 'phone', 'address', 'postalCode', 'avatarUrl', 'birthDate']
+			const update = {}
+			for (const key of allowed) {
+				if (req.body[key] !== undefined) update[key] = req.body[key]
+			}
+			if (typeof req.body.fullname === 'string' && req.body.fullname.trim()) {
+				const parts = req.body.fullname.trim().split(/\s+/)
+				update.last_name = parts[0]
+				update.first_name = parts.length > 1 ? parts[parts.length - 1] : parts[0]
+				update.middle_name = parts.slice(1, -1).join(' ')
+			}
+			await User.findByIdAndUpdate(req.user.id, update, { runValidators: true })
 			return res.status(200).json({ message: 'Update user completed' })
 		} catch (error) {
 			console.log('Update user: ', error.message)

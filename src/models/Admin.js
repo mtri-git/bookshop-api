@@ -17,7 +17,7 @@ const Admin = new Schema({
     updated_at: Date,
 	created_at: {
 		type: Date,
-		default: Date.now(),
+		default: Date.now,
 	},
 })
 

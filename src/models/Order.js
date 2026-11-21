@@ -23,7 +23,7 @@ const Order = new mongoose.Schema({
 	address: String,
 	create_at: {
 		type: Date,
-		default: Date.now(),
+		default: Date.now,
 	},
 	ship_fee: Number,
 	total: Number, // not include coupon and ship fee

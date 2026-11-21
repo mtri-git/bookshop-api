@@ -24,8 +24,13 @@ class AdminUserController{
 
     async updateUser(req, res) {
 		try {
-			const userData = req.body
-			await User.findByIdAndUpdate(userData.id, { ...userData })
+			const allowed = ['email', 'first_name', 'middle_name', 'last_name', 'phone', 'address', 'postalCode', 'avatarUrl', 'birthDate']
+			const update = {}
+			for (const key of allowed) {
+				if (req.body[key] !== undefined) update[key] = req.body[key]
+			}
+			if (req.body.password) update.password = hashPassword(req.body.password)
+			await User.findByIdAndUpdate(req.body.id, update, { runValidators: true })
 			return res.status(200).json({ message: 'Update user completed' })
 		} catch (error) {
 			console.log('Update user: ', error.message)
@@ -51,7 +56,7 @@ class AdminUserController{
 
 	async deleteUser(req, res) {
 		try {
-			await User.findByIdAndDelete(req.body.id)
+			await User.findByIdAndDelete(req.params.id)
 			return res.status(200).json({ message: 'Update user completed' })
 		} catch (error) {
 			console.log('Update user: ', error.message)

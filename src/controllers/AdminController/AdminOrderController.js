@@ -87,8 +87,8 @@ class AdminOrderController{
 
 	async deleteOrder(req, res) {
 		try {
-			await User.findByIdAndDelete(req.body.id)
-			return res.status(200).json({ message: 'Update user completed' })
+			await Order.findByIdAndDelete(req.body.id)
+			return res.status(200).json({ message: 'Delete order completed' })
 		} catch (error) {
 			console.log('Update user: ', error.message)
 			return res.status(500).json({ message: 'Server error' })

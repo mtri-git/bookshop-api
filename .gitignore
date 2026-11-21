@@ -132,3 +132,8 @@ yarn.lock
 yanr-error.json
 
 .prettierrc
+
+# env files
+.env
+.env.*
+!.env.example
