@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const { defineModel } = require('../configs/requestModel')
 const Schema = mongoose.Schema
 
 const Admin = new Schema({
@@ -22,4 +23,4 @@ const Admin = new Schema({
 })
 
 
-module.exports = mongoose.model('Admin', Admin)
+module.exports = defineModel('Admin', Admin)

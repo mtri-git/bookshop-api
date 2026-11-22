@@ -1,5 +1,10 @@
+const mongoose = require('mongoose')
 const Order = require('../models/Order')
 const Book = require('../models/Book')
+const { priceOrder } = require('../utils/pricing')
+
+const PAYMENT_TYPES = ['Cash', 'Momo', 'Bank']
+const MAX_QUANTITY = 99
 class OrderController {
 	getOrderById() {}
 
@@ -7,6 +12,7 @@ class OrderController {
 		try {
 			const user = req.user
 			let orders = await Order.find({ order_by: user.id })
+				.sort({ create_at: -1 })
 				.select('-__v')
 				.populate({
 					path: 'order_items.id',
@@ -31,16 +37,28 @@ class OrderController {
 
 	async createOrderByUser(req, res) {
 		try {
-			const { order_items, payment_type, address } = req.body
-			const SHIP_FEE = 12000
+			const { order_items, payment_type, address, phone, receiver, voucher } = req.body
 
-			if (!Array.isArray(order_items) || order_items.length === 0 || !payment_type || !address) {
-				return res.status(400).json({ message: 'Missing information for order' })
+			if (!Array.isArray(order_items) || order_items.length === 0 || order_items.length > 50) {
+				return res.status(400).json({ message: 'Giỏ hàng trống hoặc không hợp lệ' })
 			}
+			if (!PAYMENT_TYPES.includes(payment_type)) {
+				return res.status(400).json({ message: 'Phương thức thanh toán không hợp lệ' })
+			}
+			if (typeof address !== 'string' || address.trim().length < 5) {
+				return res.status(400).json({ message: 'Vui lòng nhập địa chỉ giao hàng' })
+			}
+			if (typeof phone !== 'string' || !/^[0-9+\s.-]{8,15}$/.test(phone.trim())) {
+				return res.status(400).json({ message: 'Số điện thoại không hợp lệ' })
+			}
+			const seen = new Set()
 			for (const item of order_items) {
-				if (!item?.id || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1) {
-					return res.status(400).json({ message: 'Invalid order item' })
+				const quantity = Number(item?.quantity)
+				if (!item?.id || !mongoose.isValidObjectId(item.id) || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) {
+					return res.status(400).json({ message: 'Sản phẩm trong đơn không hợp lệ' })
 				}
+				if (seen.has(String(item.id))) return res.status(400).json({ message: 'Sản phẩm bị trùng trong đơn' })
+				seen.add(String(item.id))
 			}
 
 			// Prices always come from the DB, never from the client
@@ -53,23 +71,29 @@ class OrderController {
 			const orderItems = []
 			for (const item of order_items) {
 				const book = bookMap.get(String(item.id))
-				if (!book) return res.status(400).json({ message: `Book not found: ${item.id}` })
+				if (!book) return res.status(400).json({ message: 'Một số sách không còn tồn tại, vui lòng cập nhật giỏ hàng', missing: item.id })
 				const quantity = Number(item.quantity)
 				const sale = book.sale || 0
-				const lineTotal = book.price * (1 - sale) * quantity
+				// Round the unit price (VND has no decimals) exactly like the storefront does
+				const lineTotal = Math.round(book.price * (1 - sale)) * quantity
 				total += book.price * quantity
 				itemsValue += lineTotal
 				orderItems.push({ id: item.id, price: book.price, sale, quantity, total: lineTotal })
 			}
 
+			const pricing = priceOrder(itemsValue, voucher)
 			const order = new Order({
 				order_by: req.user.id,
 				order_items: orderItems,
 				payment_type,
-				address,
-				ship_fee: SHIP_FEE,
+				address: address.trim(),
+				phone: phone.trim(),
+				receiver: typeof receiver === 'string' ? receiver.trim().slice(0, 100) : undefined,
+				voucher: pricing.voucher,
+				voucher_discount: pricing.voucherDiscount,
+				ship_fee: pricing.shipFee,
 				total,
-				order_total_value: itemsValue + SHIP_FEE,
+				order_total_value: pricing.total,
 			})
 			await order.save()
 
@@ -79,7 +103,7 @@ class OrderController {
 				}))
 			)
 
-			return res.status(201).json({ message: 'Create new order', data: { id: order._id } })
+			return res.status(201).json({ message: 'Create new order', data: { id: order._id, total: pricing.total } })
 		} catch (error) {
 			console.log('Create order by user: ', error.message)
 			return res.status(500).json({ message: 'Server error' })

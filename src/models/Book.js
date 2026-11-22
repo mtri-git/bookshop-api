@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const { defineModel } = require('../configs/requestModel')
 
 const Book = new mongoose.Schema({
     title: {
@@ -55,4 +56,4 @@ Book.pre('update', ()=>{
     }
 })
 
-module.exports = mongoose.model('Book', Book)
+module.exports = defineModel('Book', Book)

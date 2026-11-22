@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const { defineModel } = require('../configs/requestModel')
 
 const Publisher = new mongoose.Schema({
     name: {
@@ -14,5 +15,5 @@ const Publisher = new mongoose.Schema({
     country: String
  });
 
-module.exports = mongoose.model('Publisher', Publisher)
+module.exports = defineModel('Publisher', Publisher)
  

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const { defineModel } = require('../configs/requestModel')
 const Schema = mongoose.Schema
 
 const Coupon = new Schema({
@@ -44,4 +45,4 @@ User.virtual('fullname')
 		this.set({ first_name, middle_name, last_name })
 	})
 
-module.exports = mongoose.model('User', User)
+module.exports = defineModel('User', User)

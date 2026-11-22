@@ -137,3 +137,7 @@ yanr-error.json
 .env
 .env.*
 !.env.example
+
+# Cloudflare Wrangler
+.wrangler/
+.dev.vars

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const { defineModel } = require('../configs/requestModel')
 
 const Category = new mongoose.Schema({
     name: {
@@ -13,4 +14,4 @@ const Category = new mongoose.Schema({
     }
 })
 
-module.exports = mongoose.model('Category', Category)
+module.exports = defineModel('Category', Category)

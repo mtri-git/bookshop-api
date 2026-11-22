@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const { defineModel } = require('../configs/requestModel')
 
 const Order = new mongoose.Schema({
 	order_items: [
@@ -21,6 +22,10 @@ const Order = new mongoose.Schema({
 	payment_type: {type: String, default: 'cod'}, // momo, bank, cod
 	is_paid: {type: Boolean, default: false},
 	address: String,
+	receiver: String,
+	phone: String,
+	voucher: String,
+	voucher_discount: { type: Number, default: 0 },
 	create_at: {
 		type: Date,
 		default: Date.now,
@@ -30,4 +35,4 @@ const Order = new mongoose.Schema({
 	order_total_value: Number,
 })
 
-module.exports = mongoose.model('Order', Order)
+module.exports = defineModel('Order', Order)

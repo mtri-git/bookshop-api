@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const { defineModel } = require('../configs/requestModel')
 
 const Cart = new mongoose.Schema({
     cart_item: [
@@ -16,5 +17,5 @@ const Cart = new mongoose.Schema({
     }
  });
 
-module.exports = mongoose.model('Cart', Cart)
+module.exports = defineModel('Cart', Cart)
  

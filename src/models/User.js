@@ -1,19 +1,19 @@
 const mongoose = require('mongoose')
+const { defineModel } = require('../configs/requestModel')
 const Schema = mongoose.Schema
 
 const User = new Schema({
-	phone: {
-		type: String,
-	},
 	email: {
 		type: String,
 		required: true,
 		unique: true,
 		sparse: true
 	},
+	// sparse: users without a phone must not collide on a null unique key
 	phone: {
 		type: String,
 		unique: true,
+		sparse: true,
 	},
 	first_name: {
 		type: String,
@@ -43,7 +43,8 @@ const User = new Schema({
 })
 
 User.virtual('fullname').get(function () {
-	return `${this.last_name} ${this.middle_name} ${this.first_name}`
+	if (this.last_name === this.first_name && !this.middle_name) return this.first_name
+	return [this.last_name, this.middle_name, this.first_name].filter(Boolean).join(' ')
 }).set(function(value){
 	const data = value.split(' ')
 	const last_name = data.at(0)
@@ -52,4 +53,4 @@ User.virtual('fullname').get(function () {
 	this.set({ first_name, middle_name,  last_name });
 })
 
-module.exports = mongoose.model('User', User)
+module.exports = defineModel('User', User)

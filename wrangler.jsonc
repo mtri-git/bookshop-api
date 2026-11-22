@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "api-bookshop",
+  "account_id": "28374c4fbf2fe646a31d1359721bb17a",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // mongoose's package.json "browser" field points at a stripped browser build;
+  // force the Node entry so connections/models work.
+  "alias": {
+    "mongoose": "./node_modules/mongoose/index.js"
+  },
+  "observability": { "enabled": true }
+}

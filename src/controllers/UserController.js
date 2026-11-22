@@ -4,9 +4,10 @@ class UserController {
 	async getInfo(req, res) {
 		try {
 			const user = await User.findById(req.user.id)
+			if (!user) return res.status(404).json({ message: 'User not found' })
 			res.status(200).json({
 				data: {
-					fullname: `${user?.last_name} ${user?.middle_name} ${user?.first_name}`,
+					fullname: user.fullname,
 					email: user.email,
 					avatarUrl: user.avatarUrl,
 					address: user.address,
@@ -34,7 +35,18 @@ class UserController {
 				update.first_name = parts.length > 1 ? parts[parts.length - 1] : parts[0]
 				update.middle_name = parts.slice(1, -1).join(' ')
 			}
-			await User.findByIdAndUpdate(req.user.id, update, { runValidators: true })
+			// An empty phone must be removed, not stored as "" (phone is unique + sparse)
+			const ops = { $set: update }
+			if (typeof update.phone === 'string' && !update.phone.trim()) {
+				delete update.phone
+				ops.$unset = { phone: 1 }
+			}
+			try {
+				await User.findByIdAndUpdate(req.user.id, ops, { runValidators: true })
+			} catch (error) {
+				if (error?.code === 11000) return res.status(400).json({ message: 'Số điện thoại đã được sử dụng bởi tài khoản khác' })
+				throw error
+			}
 			return res.status(200).json({ message: 'Update user completed' })
 		} catch (error) {
 			console.log('Update user: ', error.message)
