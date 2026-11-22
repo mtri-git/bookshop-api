@@ -19,15 +19,11 @@ class OrderController {
 					select: 'id title imageUrl',
 				})
 				.lean()
+			// Legacy orders may have no order_items; a deleted book populates to null
 			orders = orders.map(order => {
-				order.order_items.map(order_item => {
-					order_item.info = order_item.id
-					delete order_item['id']
-					return order_item
-				})
+				order.order_items = (order.order_items || []).map(({ id, ...order_item }) => ({ ...order_item, info: id || null }))
 				return order
 			})
-			// console.log(orders)
 			res.status(200).json({ data: orders })
 		} catch (error) {
 			console.log('get order: ', error.message)
